@@ -1,0 +1,71 @@
+--[[
+  🚀 SCRIPT CONSTRUCTOR - Loader de GitHub
+  
+  Este script descarga y ejecuta la Library GUI desde una URL raw de GitHub,
+  y luego procede a construir el HUD con botones de prueba (Scrollable).
+--]]
+
+local GITHUB_RAW_LINK = "https://raw.githubusercontent.com/TuUsuario/TuRepo/main/Library.lua" -- <<-- ¡IMPORTANTE! REEMPLAZA ESTO CON TU ENLACE REAL
+
+local HttpService = game:GetService("HttpService")
+local LibraryCode = nil
+
+-- === PASO 1: DESCARGAR EL CÓDIGO DE LA LIBRERÍA ===
+print("Intentando descargar la Library GUI desde: " .. GITHUB_RAW_LINK)
+
+local success_download, result_download = pcall(function()
+    -- Usar game.HttpGet o game.Http.request si están disponibles en el executor, 
+    -- o una alternativa si el executor no expone estas funciones estándar de Roblox.
+    -- Aquí usamos la forma más común en entornos de scripting externos:
+    LibraryCode = game:HttpGet(GITHUB_RAW_LINK, true)
+end)
+
+if not success_download or not LibraryCode or LibraryCode == "" then
+    warn("ERROR DE DESCARGA: No se pudo obtener el código de la Library GUI.")
+    warn("Detalles:", result_download)
+    return -- Detener el script si no se descarga
+end
+
+print("Descarga exitosa. Ejecutando la Library Base...")
+
+-- === PASO 2: EJECUTAR EL CÓDIGO DE LA LIBRERÍA ===
+local success_exec, result_exec = pcall(loadstring(LibraryCode))
+
+if not success_exec or not _G.LuaLibrary then
+    warn("ERROR DE EJECUCIÓN: El código de la Library Base falló al ejecutarse o no exportó _G.LuaLibrary.")
+    warn("Detalles:", result_exec)
+    return -- Detener el script si falla la ejecución
+end
+
+print("Library GUI cargada. Iniciando la construcción del HUD...")
+
+-- === PASO 3: CONSTRUCCIÓN DEL MENÚ (Prueba de Scroll) ===
+
+-- 1. Crear la instancia del HUD
+local Library = _G.LuaLibrary.new()
+
+-- 2. Crear la Sección de Prueba de Scroll
+local scrollSection = Library:addSection("Scroll Test (15 Items)")
+
+-- 3. Crear 15 botones para forzar el scroll y probar la barra
+for i = 1, 15 do
+    local buttonName = string.format("Función con Scroll %02d", i)
+    
+    scrollSection:addButton(buttonName, function()
+        print("Botón '" .. buttonName .. "' presionado.")
+    end)
+end
+
+-- 4. Crear una Sección Básica (Corta) para referencia
+local basicSection = Library:addSection("Basic Functions")
+
+basicSection:addButton("Toggle Button A", function()
+    print("Toggle A Presionado")
+end)
+
+basicSection:addButton("Toggle Button B", function()
+    print("Toggle B Presionado")
+end)
+
+print("CONSTRUCTOR COMPLETO: El HUD está listo y el scroll ha sido probado.")
+
