@@ -1,27 +1,26 @@
 --[[
-  🚀 SCRIPT 😈 LUIS - LIBRARY GUI BASE (SCROLLABLE)
-
-  Este es el código base que crea el HUD oscuro, movible y las secciones colapsables con scroll.
-  Se exporta a la variable global _G.LuaLibrary para que el script constructor lo use.
+  🚀 SCRIPT 😈 LUIS - LIBRARY GUI BASE
+  HUD oscuro, movible y secciones colapsables con scroll.
+  Exporta: _G.LuaLibrary
 --]]
 
 local SCRIPT_NAME = "SCRIPT 😈 LUIS"
-local LIBRARY_WIDTH = 250 -- Ancho fijo del HUD
-local SECTION_MAX_HEIGHT = 200 -- Altura máxima de la sección expandida para habilitar scroll
+local LIBRARY_WIDTH = 250    -- Ancho del HUD
+local SECTION_MAX_HEIGHT = 200 -- Altura máxima expandida (scroll)
 
 local LibraryGUI = {}
 LibraryGUI.__index = LibraryGUI
 
---- Constructor: Inicializa y devuelve la nueva instancia de la librería.
 function LibraryGUI.new()
     local self = setmetatable({}, LibraryGUI)
 
+    -- Crea el GUI en PlayerGui
     local Player = game.Players.LocalPlayer
     self.ScreenGui = Instance.new("ScreenGui")
     self.ScreenGui.Name = "Library_GUI_Root"
     self.ScreenGui.Parent = Player:WaitForChild("PlayerGui")
-    
-    -- Marco Principal (El Contenedor del HUD)
+
+    -- Marco Principal (HUD)
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = UDim2.new(0, LIBRARY_WIDTH, 0, 30)
@@ -34,21 +33,20 @@ function LibraryGUI.new()
     mainFrame.Parent = self.ScreenGui
     self.MainFrame = mainFrame
 
-    -- Layout (Organizador Principal)
+    -- Layout Principal
     local listLayout = Instance.new("UIListLayout")
     listLayout.Name = "MainLayout"
     listLayout.Padding = UDim.new(0, 2)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = mainFrame
-    
-    -- Función para mantener el MainFrame ajustado al contenido
+
+    -- Ajusta el tamaño del MainFrame según contenido
     local function updateFrameSize()
         mainFrame.Size = UDim2.new(0, LIBRARY_WIDTH, 0, listLayout.AbsoluteContentSize.Y + 2)
     end
-
+    listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateFrameSize)
     listLayout.ChildAdded:Connect(updateFrameSize)
     listLayout.ChildRemoved:Connect(updateFrameSize)
-    listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateFrameSize)
 
     -- Encabezado (Título)
     local header = Instance.new("Frame")
@@ -69,13 +67,11 @@ function LibraryGUI.new()
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.TextWrapped = true
     titleLabel.Parent = header
-    
+
     return self
 end
 
---- Método: Crea una nueva sección colapsable (Carpeta) y Desplazable.
--- @param name (string): El nombre que aparecerá en el encabezado de la sección.
--- @return (table): Una tabla con los métodos `addButton` y `getFrame`.
+-- Agrega una sección colapsable con barra de scroll
 function LibraryGUI:addSection(name)
     local mainFrame = self.MainFrame
 
@@ -85,12 +81,11 @@ function LibraryGUI:addSection(name)
     sectionFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     sectionFrame.Parent = mainFrame
 
-    -- SCROLLINGFRAME para el contenido
+    -- Contenedor scrollable
     local contentFrame = Instance.new("ScrollingFrame")
     contentFrame.Name = "Content"
     contentFrame.Size = UDim2.new(1, 0, 0, 0) -- Altura 0: colapsado
     contentFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    contentFrame.BackgroundTransparency = 0
     contentFrame.BorderSizePixel = 0
     contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     contentFrame.ScrollBarThickness = 6
@@ -102,76 +97,61 @@ function LibraryGUI:addSection(name)
     contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
     contentLayout.Parent = contentFrame
 
-    -- Actualiza el Canvas del ScrollingFrame para permitir el scroll
+    -- Actualiza el Canvas para el scroll
     local function updateCanvasSize()
         local contentSizeY = contentLayout.AbsoluteContentSize.Y
         contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentSizeY)
     end
-
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvasSize)
     contentLayout.ChildAdded:Connect(updateCanvasSize)
     contentLayout.ChildRemoved:Connect(updateCanvasSize)
-    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvasSize)
 
-    -- Encabezado de la sección (Botón de Toggle)
+    -- Header de la sección (colapsar/expandir)
     local sectionHeader = Instance.new("TextButton")
     sectionHeader.Name = "SectionHeader"
     sectionHeader.Size = UDim2.new(1, 0, 0, 30)
     sectionHeader.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     sectionHeader.TextColor3 = Color3.fromRGB(200, 200, 200)
-    sectionHeader.Text = name .. "  v" -- 'v' indica colapsado
+    sectionHeader.Text = name .. "  v"
     sectionHeader.Font = Enum.Font.SourceSans
     sectionHeader.TextSize = 16
     sectionHeader.TextXAlignment = Enum.TextXAlignment.Left
     sectionHeader.Parent = sectionFrame
 
     local isExpanded = false
-
-    -- LÓGICA DE TOGGLE (CARPETA SCROLLABLE)
     sectionHeader.MouseButton1Click:Connect(function()
         isExpanded = not isExpanded
-
         if isExpanded then
-            -- Expandir: Usa la altura máxima definida (SECTION_MAX_HEIGHT)
-            local targetHeight = SECTION_MAX_HEIGHT
-            contentFrame:TweenSize(UDim2.new(1, 0, 0, targetHeight), "Out", "Quad", 0.2, true)
+            contentFrame:TweenSize(UDim2.new(1, 0, 0, SECTION_MAX_HEIGHT), "Out", "Quad", 0.2, true)
             sectionHeader.Text = name .. "  -"
         else
-            -- Colapsar
             contentFrame:TweenSize(UDim2.new(1, 0, 0, 0), "Out", "Quad", 0.2, true)
             sectionHeader.Text = name .. "  v"
         end
     end)
-    
-    -- Objeto de retorno de la sección
+
     return {
         ContentFrame = contentFrame,
-        -- Método clave: Añadir botón dentro de esta sección
         addButton = function(buttonName, callback)
             local button = Instance.new("TextButton")
             button.Name = buttonName:gsub("%s+", "_")
-            
-            -- Se ajusta el ancho para dejar espacio a la barra de scroll
-            button.Size = UDim2.new(1, -12, 0, 25) 
-            button.Position = UDim2.new(0, 6, 0, 0) 
-            
+            button.Size = UDim2.new(1, -12, 0, 25)
+            button.Position = UDim2.new(0, 6, 0, 0)
             button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
             button.TextColor3 = Color3.fromRGB(255, 255, 255)
             button.Text = buttonName
             button.Font = Enum.Font.SourceSans
             button.TextSize = 14
             button.Parent = contentFrame
-
             if type(callback) == "function" then
                 button.MouseButton1Click:Connect(callback)
             end
-            
             updateCanvasSize()
-            
             return button
         end,
         getFrame = function() return sectionFrame end,
     }
 end
 
--- Exportar la librería para uso externo
+-- Exporta la librería
 _G.LuaLibrary = LibraryGUI
