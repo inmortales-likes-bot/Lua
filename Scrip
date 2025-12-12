@@ -5,7 +5,7 @@
   y luego procede a construir el HUD con botones de prueba (Scrollable).
 --]]
 
-local GITHUB_RAW_LINK = "https://raw.githubusercontent.com/TuUsuario/TuRepo/main/Library.lua" -- <<-- ¡IMPORTANTE! REEMPLAZA ESTO CON TU ENLACE REAL
+local GITHUB_RAW_LINK = "https://raw.githubusercontent.com/inmortales-likes-bot/Lua/refs/heads/main/Hud" -- <<-- ¡IMPORTANTE! REEMPLAZA ESTO CON TU ENLACE REAL
 
 local HttpService = game:GetService("HttpService")
 local LibraryCode = nil
