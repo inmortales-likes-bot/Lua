@@ -1,70 +1,42 @@
---[[
-  🛠️ SCRIPT CONSTRUCTOR FINAL (Loader & Builder)
-  
-  FUNCIÓN:
-  1. Descarga y ejecuta la Library GUI desde el enlace proporcionado.
-  2. Inicializa el HUD (Título: SCRIPT 😈 LUIS).
-  3. Crea una sección con 15 botones para probar la función de Scroll (desplazamiento).
+--[[ 
+  SCRIPT DE PRUEBA DEL HUD (LIBRARY)
+  Descarga y ejecuta el HUD, y agrega unos botones de muestra para ver el diseño, el scroll, y los callbacks.
+  SOLO PARA PRUEBA VISUAL. No incluye menús complicados.
 --]]
 
-local GITHUB_RAW_LINK = "https://raw.githubusercontent.com/inmortales-likes-bot/Lua/main/Script.lua" -- <<-- Enlace de la Library GUI
+-- Pega el RAW-LINK de tu Hud.lua aquí 👇
+local HUD_URL = "https://raw.githubusercontent.com/inmortales-likes-bot/Lua/refs/heads/main/Hud"
 
-local HttpService = game:GetService("HttpService")
-local LibraryCode = nil
+-- ↓↓↓ No edites nada abajo salvo para cambiar los botones de ejemplo ↓↓↓
 
--- === PASO 1: DESCARGAR EL CÓDIGO DE LA LIBRERÍA ===
-print("[LOADER] Intentando descargar la Library GUI...")
-
-local success_download, result_download = pcall(function()
-    -- Usamos game:HttpGet() para la descarga del código raw
-    LibraryCode = game:HttpGet(GITHUB_RAW_LINK, true)
-end)
-
-if not success_download or not LibraryCode or LibraryCode == "" then
-    warn("⛔ ERROR DE DESCARGA: No se pudo obtener el código de la Library GUI. Verifica el enlace RAW.")
-    warn("Detalles:", result_download)
-    return -- Detener el script si falla
+local ok, code = pcall(function() return game:HttpGet(HUD_URL) end)
+if not ok or not code or code == "" then
+    warn("No se pudo descargar el HUD. Comprueba el enlace RAW.")
+    return
 end
 
-print("[LOADER] Descarga exitosa. Ejecutando la Library Base...")
-
--- === PASO 2: EJECUTAR EL CÓDIGO DE LA LIBRERÍA ===
-local success_exec, result_exec = pcall(loadstring(LibraryCode))
-
-if not success_exec or not _G.LuaLibrary then
-    warn("⛔ ERROR DE EJECUCIÓN: El código de la Library Base falló al ejecutarse o no exportó _G.LuaLibrary.")
-    warn("Detalles:", result_exec)
-    return -- Detener el script si falla la ejecución
+local ok_load, loadErr = pcall(function() loadstring(code)() end)
+if not ok_load or not _G.LuaLibrary then
+    warn("No se pudo inicializar la librería HUD. ¿Exporta _G.LuaLibrary?")
+    return
 end
 
-print("[BUILDER] Library GUI cargada. Iniciando la construcción del HUD...")
+-- Crear el HUD principal:
+local HUD = _G.LuaLibrary.new()
 
--- === PASO 3: CONSTRUCCIÓN DEL MENÚ (Prueba de Scroll) ===
-
--- 1. Crear la instancia del HUD
-local Library = _G.LuaLibrary.new()
-
--- 2. Crear la Sección de Prueba de Scroll
-local scrollSection = Library:addSection("Scroll Test (15 Items)")
-
--- 3. Crear 15 botones para forzar el scroll y probar la barra
-for i = 1, 15 do
-    local buttonName = string.format("Función con Scroll %02d", i)
-    
-    scrollSection:addButton(buttonName, function()
-        print("Botón '" .. buttonName .. "' presionado.")
+-- Sección Scroll con muchos botones:
+local scrollSec = HUD:addSection("Scroll Demo (10 Botones)")
+for i = 1, 10 do
+    scrollSec:addButton("Botón #" .. i, function()
+        print("Presionaste el Botón #" .. i)
     end)
 end
 
--- 4. Crear una Sección Básica (Corta) para referencia
-local basicSection = Library:addSection("Basic Functions")
-
-basicSection:addButton("Item 1", function()
-    print("Item 1 Presionado")
+-- Sección básica:
+local baseSec = HUD:addSection("Ejemplo Básico")
+baseSec:addButton("Hola Mundo", function() print("¡Hola mundo!") end)
+baseSec:addButton("Cerrar HUD", function()
+    if HUD.ScreenGui then HUD.ScreenGui:Destroy() print("HUD Cerrado.") end
 end)
 
-basicSection:addButton("Item 2", function()
-    print("Item 2 Presionado")
-end)
-
-print("[BUILDER] CONSTRUCTOR COMPLETO: El HUD está listo. Prueba la primera sección para ver el scroll.")
+print(">> HUD DE PRUEBA LISTO <<")
