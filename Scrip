@@ -1,43 +1,43 @@
 --[[
-  🚀 SCRIPT CONSTRUCTOR - Loader de GitHub
+  🛠️ SCRIPT CONSTRUCTOR FINAL (Loader & Builder)
   
-  Este script descarga y ejecuta la Library GUI desde una URL raw de GitHub,
-  y luego procede a construir el HUD con botones de prueba (Scrollable).
+  FUNCIÓN:
+  1. Descarga y ejecuta la Library GUI desde el enlace proporcionado.
+  2. Inicializa el HUD (Título: SCRIPT 😈 LUIS).
+  3. Crea una sección con 15 botones para probar la función de Scroll (desplazamiento).
 --]]
 
-local GITHUB_RAW_LINK = "https://raw.githubusercontent.com/inmortales-likes-bot/Lua/refs/heads/main/Hud" -- <<-- ¡IMPORTANTE! REEMPLAZA ESTO CON TU ENLACE REAL
+local GITHUB_RAW_LINK = "https://raw.githubusercontent.com/inmortales-likes-bot/Lua/main/Script.lua" -- <<-- Enlace de la Library GUI
 
 local HttpService = game:GetService("HttpService")
 local LibraryCode = nil
 
 -- === PASO 1: DESCARGAR EL CÓDIGO DE LA LIBRERÍA ===
-print("Intentando descargar la Library GUI desde: " .. GITHUB_RAW_LINK)
+print("[LOADER] Intentando descargar la Library GUI...")
 
 local success_download, result_download = pcall(function()
-    -- Usar game.HttpGet o game.Http.request si están disponibles en el executor, 
-    -- o una alternativa si el executor no expone estas funciones estándar de Roblox.
-    -- Aquí usamos la forma más común en entornos de scripting externos:
+    -- Usamos game:HttpGet() para la descarga del código raw
     LibraryCode = game:HttpGet(GITHUB_RAW_LINK, true)
 end)
 
 if not success_download or not LibraryCode or LibraryCode == "" then
-    warn("ERROR DE DESCARGA: No se pudo obtener el código de la Library GUI.")
+    warn("⛔ ERROR DE DESCARGA: No se pudo obtener el código de la Library GUI. Verifica el enlace RAW.")
     warn("Detalles:", result_download)
-    return -- Detener el script si no se descarga
+    return -- Detener el script si falla
 end
 
-print("Descarga exitosa. Ejecutando la Library Base...")
+print("[LOADER] Descarga exitosa. Ejecutando la Library Base...")
 
 -- === PASO 2: EJECUTAR EL CÓDIGO DE LA LIBRERÍA ===
 local success_exec, result_exec = pcall(loadstring(LibraryCode))
 
 if not success_exec or not _G.LuaLibrary then
-    warn("ERROR DE EJECUCIÓN: El código de la Library Base falló al ejecutarse o no exportó _G.LuaLibrary.")
+    warn("⛔ ERROR DE EJECUCIÓN: El código de la Library Base falló al ejecutarse o no exportó _G.LuaLibrary.")
     warn("Detalles:", result_exec)
     return -- Detener el script si falla la ejecución
 end
 
-print("Library GUI cargada. Iniciando la construcción del HUD...")
+print("[BUILDER] Library GUI cargada. Iniciando la construcción del HUD...")
 
 -- === PASO 3: CONSTRUCCIÓN DEL MENÚ (Prueba de Scroll) ===
 
@@ -59,13 +59,12 @@ end
 -- 4. Crear una Sección Básica (Corta) para referencia
 local basicSection = Library:addSection("Basic Functions")
 
-basicSection:addButton("Toggle Button A", function()
-    print("Toggle A Presionado")
+basicSection:addButton("Item 1", function()
+    print("Item 1 Presionado")
 end)
 
-basicSection:addButton("Toggle Button B", function()
-    print("Toggle B Presionado")
+basicSection:addButton("Item 2", function()
+    print("Item 2 Presionado")
 end)
 
-print("CONSTRUCTOR COMPLETO: El HUD está listo y el scroll ha sido probado.")
-
+print("[BUILDER] CONSTRUCTOR COMPLETO: El HUD está listo. Prueba la primera sección para ver el scroll.")
