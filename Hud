@@ -1,7 +1,6 @@
 local RainbowUI = {}
 RainbowUI.__index = RainbowUI
 
--- [Se mantiene el código de UserInputService, RunService y rainbowColor]
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
@@ -15,7 +14,6 @@ function RainbowUI:CreateWindow(width, height)
     width, height = width or 230, height or 120
 
     local sg = Instance.new("ScreenGui")
-    -- [Código de ScreenGui, MainFrame y Borders se mantiene]
     sg.Name = "RainbowUI"
     sg.ResetOnSpawn = false
     sg.IgnoreGuiInset = true
@@ -28,8 +26,7 @@ function RainbowUI:CreateWindow(width, height)
     frame.Position = UDim2.fromOffset(160, 180)
     frame.BackgroundTransparency = 1
     frame.Parent = sg
-    -- [Código de Borders se mantiene]
-    
+
     local borders = {}
     for _,side in ipairs({"Top","Bottom","Left","Right"}) do
         local f = Instance.new("Frame")
@@ -68,7 +65,6 @@ function RainbowUI:CreateWindow(width, height)
     bar.ZIndex = 2
     bar.Active = true 
 
-    -- [Código de Title se mantiene]
     local title = Instance.new("TextLabel")
     title.Name = "Title"
     title.Size = UDim2.new(1, -60, 1, 0)
@@ -83,10 +79,9 @@ function RainbowUI:CreateWindow(width, height)
     title.Parent = bar
     title.ZIndex = 3
 
-    -- Botón de Colapsar/Expandir (Reemplaza a la '✖')
     local collapseBtn = Instance.new("TextButton")
     collapseBtn.Name = "CollapseBtn"
-    collapseBtn.Text = "—" -- INICIA CON '—' (significa expandir)
+    collapseBtn.Text = "—" 
     collapseBtn.Size = UDim2.new(0, 22, 0, 22)
     collapseBtn.AnchorPoint = Vector2.new(1, 0.5)
     collapseBtn.Position = UDim2.new(1, -8, 0.5, 0)
@@ -113,22 +108,18 @@ function RainbowUI:CreateWindow(width, height)
     scroll.ZIndex = 2
     scroll.Parent = bg
     
-    -- >>>>> LÓGICA DE INICIO CORREGIDA <<<<<
     local totalFrameHeight = height
-    local isExpanded = false -- INICIA COLAPSADO (false)
+    local isExpanded = false 
 
-    -- Configuración inicial para COLAPSADO
     scroll.Visible = false
-    frame.Size = UDim2.new(0, width, 0, 26) -- Altura inicial = solo barra (26)
-    -- El collapseBtn.Text ya está en "—"
+    frame.Size = UDim2.new(0, width, 0, 26) 
 
     local uiList = Instance.new("UIListLayout")
-    -- [Código de uiList y RenderStepped se mantiene]
     uiList.Parent = scroll
     uiList.SortOrder = Enum.SortOrder.LayoutOrder
     uiList.Padding = UDim.new(0,4)
 
-    game:GetService("RunService").RenderStepped:Connect(function()
+    RunService.RenderStepped:Connect(function()
         for i,rf in ipairs(borders) do
             rf.BackgroundColor3 = rainbowColor(0.39 + (i*0.07), 1, 1)
         end
@@ -139,22 +130,19 @@ function RainbowUI:CreateWindow(width, height)
         local animationTime = 0.2
 
         if isExpanded then
-            -- Expandir: Restaurar scroll y altura
             scroll.Visible = true
             frame:TweenSize(UDim2.new(0, width, 0, totalFrameHeight), "Out", "Quad", animationTime, true)
-            collapseBtn.Text = "v" -- Mostrar 'v' (significa colapsar)
+            collapseBtn.Text = "v"
         else
-            -- Colapsar: Ocultar scroll y reducir altura a solo la barra (26)
             scroll.Visible = false
             frame:TweenSize(UDim2.new(0, width, 0, 26), "Out", "Quad", animationTime, true)
-            collapseBtn.Text = "—" -- Mostrar '—' (significa expandir)
+            collapseBtn.Text = "—"
         end
     end
     
     collapseBtn.MouseButton1Click:Connect(toggleContent)
 
-
-    -- [Se mantiene la LÓGICA DE MOVILIDAD]
+    -- Lógica de Movilidad (Mantenida)
     local dragging = false
     local dragStart = Vector2.new(0, 0)
     local startPos = UDim2.new(0, 0, 0, 0)
@@ -190,7 +178,6 @@ function RainbowUI:CreateWindow(width, height)
             dragging = false
         end
     end)
-    -- [FIN LÓGICA DE MOVILIDAD]
 
     local api = setmetatable({
         _sg = sg,
@@ -201,7 +188,72 @@ function RainbowUI:CreateWindow(width, height)
     return api
 end
 
--- [El resto de las funciones AddButton, Destroy, Notify se mantienen IGUAL]
+-- ====================================================================
+-- NUEVA FUNCIÓN AÑADIDA: AddToggle (Calidad Premium)
+-- ====================================================================
+
+function RainbowUI:AddToggle(text, default, callback)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Name = "Toggle_" .. (text:gsub("%s+", "_"))
+    toggleFrame.Size = UDim2.new(1, -8, 0, 23)
+    toggleFrame.BackgroundTransparency = 1
+    toggleFrame.Parent = self._scroll
+    
+    local state = default or false
+
+    local label = Instance.new("TextLabel")
+    label.Text = "  "..(text or "Toggle")
+    label.Size = UDim2.new(1, -26, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamSemibold
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(210,210,255)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = toggleFrame
+    
+    local box = Instance.new("TextButton")
+    box.Size = UDim2.new(0, 18, 0, 18)
+    box.AnchorPoint = Vector2.new(1, 0.5)
+    box.Position = UDim2.new(1, 0, 0.5, 0)
+    box.BorderSizePixel = 0
+    box.AutoButtonColor = false
+    box.Font = Enum.Font.SourceSansBold -- Usamos Bold para la marca
+    box.TextSize = 14
+    box.Parent = toggleFrame
+    box.ZIndex = 5
+
+    -- Colores
+    local COLOR_ON = Color3.fromRGB(30, 150, 50)  -- Verde de activación
+    local COLOR_OFF = Color3.fromRGB(50, 50, 70) -- Gris oscuro (fondo)
+    local TEXT_COLOR_ON = Color3.new(1, 1, 1)
+
+    local function updateBox(newState)
+        state = newState
+        if state then
+            box.BackgroundColor3 = COLOR_ON
+            box.Text = "✓"
+            box.TextColor3 = TEXT_COLOR_ON
+        else
+            box.BackgroundColor3 = COLOR_OFF
+            box.Text = ""
+        end
+    end
+
+    box.MouseButton1Click:Connect(function()
+        updateBox(not state)
+        if callback then pcall(callback, state) end
+    end)
+    
+    updateBox(default or false) -- Aplicar estado inicial
+
+    return {
+        Frame = toggleFrame,
+        SetValue = updateBox,
+        GetValue = function() return state end
+    }
+end
+
+-- El resto de las funciones se mantienen
 function RainbowUI:AddButton(text, callback)
     local btn = Instance.new("TextButton")
     btn.Text = "  "..(text or "Botón")
