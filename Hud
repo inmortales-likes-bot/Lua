@@ -4,6 +4,9 @@ RainbowUI.__index = RainbowUI
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
+-- Nuevo evento para que el script constructor sepa cuándo se llama a Notify
+local NotifyEvent = Instance.new("BindableEvent") 
+
 local function rainbowColor(speed, sat, val)
     sat = sat or 1
     val = val or 1
@@ -11,7 +14,7 @@ local function rainbowColor(speed, sat, val)
 end
 
 function RainbowUI:CreateWindow(width, height)
-    width, height = width or 230, height or 300 -- Aumento la altura inicial por defecto
+    width, height = width or 230, height or 120
 
     local sg = Instance.new("ScreenGui")
     sg.Name = "RainbowUI"
@@ -26,7 +29,7 @@ function RainbowUI:CreateWindow(width, height)
     frame.Position = UDim2.fromOffset(160, 180)
     frame.BackgroundTransparency = 1
     frame.Parent = sg
-
+    
     local borders = {}
     for _,side in ipairs({"Top","Bottom","Left","Right"}) do
         local f = Instance.new("Frame")
@@ -143,7 +146,6 @@ function RainbowUI:CreateWindow(width, height)
     
     collapseBtn.MouseButton1Click:Connect(toggleContent)
 
-    -- Lógica de Movilidad
     local dragging = false
     local dragStart = Vector2.new(0, 0)
     local startPos = UDim2.new(0, 0, 0, 0)
@@ -189,225 +191,6 @@ function RainbowUI:CreateWindow(width, height)
     return api
 end
 
--- ====================================================================
--- FUNCIÓN: AddSection (Permite organizar y colapsar)
--- ====================================================================
-
-function RainbowUI:AddSection(text)
-    local sectionFrame = Instance.new("Frame")
-    sectionFrame.Name = "Section_" .. (text:gsub("%s+", "_"))
-    sectionFrame.Size = UDim2.new(1, 0, 0, 22) 
-    sectionFrame.BackgroundTransparency = 1
-    sectionFrame.Parent = self._scroll
-    
-    local sectionList = Instance.new("UIListLayout")
-    sectionList.Parent = sectionFrame
-    sectionList.SortOrder = Enum.SortOrder.LayoutOrder
-    sectionList.Padding = UDim.new(0, 4) 
-    
-    local headerBtn = Instance.new("TextButton")
-    headerBtn.Name = "Header"
-    headerBtn.Text = "  — "..tostring(text or "Sección")
-    headerBtn.Size = UDim2.new(1, 0, 0, 22)
-    headerBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-    headerBtn.BorderSizePixel = 0
-    headerBtn.Font = Enum.Font.GothamBold
-    headerBtn.TextSize = 14
-    headerBtn.TextColor3 = Color3.fromRGB(255,255,255)
-    headerBtn.TextXAlignment = Enum.TextXAlignment.Left
-    headerBtn.AutoButtonColor = true
-    headerBtn.ZIndex = 4
-    headerBtn.LayoutOrder = 1
-    headerBtn.Parent = sectionFrame
-    
-    local contentFrame = Instance.new("Frame")
-    contentFrame.Name = "Content"
-    contentFrame.Size = UDim2.new(1, 0, 0, 0)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.ClipsDescendants = true 
-    contentFrame.LayoutOrder = 2
-    contentFrame.Parent = sectionFrame
-    
-    local contentList = Instance.new("UIListLayout")
-    contentList.Parent = contentFrame
-    contentList.SortOrder = Enum.SortOrder.LayoutOrder
-    contentList.Padding = UDim.new(0, 4)
-    contentList.AutomaticSize = Enum.AutomaticSize.Y
-
-    local isCollapsed = true 
-
-    local function toggleSection()
-        isCollapsed = not isCollapsed
-        
-        if isCollapsed then
-            headerBtn.Text = "  — "..tostring(text)
-            contentFrame.Size = UDim2.new(1, 0, 0, 0)
-        else
-            headerBtn.Text = "  v "..tostring(text)
-            contentFrame.Size = UDim2.new(1, 0, 0, contentList.AbsoluteContentSize.Y)
-        end
-        sectionFrame.Size = UDim2.new(1, 0, 0, 0)
-        sectionFrame.AutomaticSize = Enum.AutomaticSize.Y
-    end
-    
-    headerBtn.MouseButton1Click:Connect(toggleSection)
-    
-    local sectionAPI = setmetatable({
-        _content = contentFrame,
-        _listLayout = contentList,
-        _sectionFrame = sectionFrame
-    }, RainbowUI)
-    
-    -- Sobreescribir AddButton y AddToggle para que agreguen elementos a ESTA sección
-    function sectionAPI:AddButton(btnText, callback)
-        local btn = Instance.new("TextButton")
-        btn.Text = "  "..(btnText or "Botón")
-        btn.Size = UDim2.new(1, -8, 0, 23)
-        btn.BackgroundColor3 = Color3.fromRGB(32,32,50)
-        btn.BorderSizePixel = 0
-        btn.Font = Enum.Font.GothamSemibold
-        btn.TextSize = 14
-        btn.TextColor3 = Color3.fromRGB(210,210,255)
-        btn.AutoButtonColor = true
-        btn.ZIndex = 4
-        btn.Parent = sectionAPI._content -- Nuevo padre
-        btn.MouseButton1Click:Connect(function()
-            if callback then pcall(callback) end
-        end)
-        return btn
-    end
-
-    function sectionAPI:AddToggle(toggleText, default, callback)
-        local toggleFrame = Instance.new("Frame")
-        toggleFrame.Name = "Toggle_" .. (toggleText:gsub("%s+", "_"))
-        toggleFrame.Size = UDim2.new(1, -8, 0, 23)
-        toggleFrame.BackgroundTransparency = 1
-        toggleFrame.Parent = sectionAPI._content -- Nuevo padre
-        
-        local state = default or false
-
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, -26, 1, 0)
-        label.Text = "  "..(toggleText or "Toggle")
-        label.BackgroundTransparency = 1
-        label.Font = Enum.Font.GothamSemibold
-        label.TextSize = 14
-        label.TextColor3 = Color3.fromRGB(210,210,255)
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = toggleFrame
-        
-        local box = Instance.new("TextButton")
-        box.Size = UDim2.new(0, 18, 0, 18)
-        box.AnchorPoint = Vector3.new(1, 0.5)
-        box.Position = UDim2.new(1, 0, 0.5, 0)
-        box.BorderSizePixel = 0
-        box.AutoButtonColor = false
-        box.Font = Enum.Font.SourceSansBold
-        box.TextSize = 14
-        box.Parent = toggleFrame
-        box.ZIndex = 5
-
-        local COLOR_ON = Color3.fromRGB(30, 150, 50) 
-        local COLOR_OFF = Color3.fromRGB(50, 50, 70) 
-        local TEXT_COLOR_ON = Color3.new(1, 1, 1)
-
-        local function updateBox(newState)
-            state = newState
-            if state then
-                box.BackgroundColor3 = COLOR_ON
-                box.Text = "✓"
-                box.TextColor3 = TEXT_COLOR_ON
-            else
-                box.BackgroundColor3 = COLOR_OFF
-                box.Text = ""
-            end
-        end
-
-        box.MouseButton1Click:Connect(function()
-            updateBox(not state)
-            if callback then pcall(callback, state) end
-        end)
-        
-        updateBox(default or false)
-
-        return {
-            Frame = toggleFrame,
-            SetValue = updateBox,
-            GetValue = function() return state end
-        }
-    end
-
-    return sectionAPI
-end
-
--- ====================================================================
--- FUNCIÓN: AddToggle (Para añadir al HUD principal si no hay sección)
--- ====================================================================
-
-function RainbowUI:AddToggle(text, default, callback)
-    local toggleFrame = Instance.new("Frame")
-    toggleFrame.Name = "Toggle_" .. (text:gsub("%s+", "_"))
-    toggleFrame.Size = UDim2.new(1, -8, 0, 23)
-    toggleFrame.BackgroundTransparency = 1
-    toggleFrame.Parent = self._scroll
-    
-    local state = default or false
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -26, 1, 0)
-    label.Text = "  "..(text or "Toggle")
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamSemibold
-    label.TextSize = 14
-    label.TextColor3 = Color3.fromRGB(210,210,255)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = toggleFrame
-    
-    local box = Instance.new("TextButton")
-    box.Size = UDim2.new(0, 18, 0, 18)
-    box.AnchorPoint = Vector3.new(1, 0.5)
-    box.Position = UDim2.new(1, 0, 0.5, 0)
-    box.BorderSizePixel = 0
-    box.AutoButtonColor = false
-    box.Font = Enum.Font.SourceSansBold
-    box.TextSize = 14
-    box.Parent = toggleFrame
-    box.ZIndex = 5
-
-    local COLOR_ON = Color3.fromRGB(30, 150, 50)  
-    local COLOR_OFF = Color3.fromRGB(50, 50, 70) 
-    local TEXT_COLOR_ON = Color3.new(1, 1, 1)
-
-    local function updateBox(newState)
-        state = newState
-        if state then
-            box.BackgroundColor3 = COLOR_ON
-            box.Text = "✓"
-            box.TextColor3 = TEXT_COLOR_ON
-        else
-            box.BackgroundColor3 = COLOR_OFF
-            box.Text = ""
-        end
-    end
-
-    box.MouseButton1Click:Connect(function()
-        updateBox(not state)
-        if callback then pcall(callback, state) end
-    end)
-    
-    updateBox(default or false)
-
-    return {
-        Frame = toggleFrame,
-        SetValue = updateBox,
-        GetValue = function() return state end
-    }
-end
-
--- ====================================================================
--- FUNCIÓN: AddButton (Para añadir al HUD principal si no hay sección)
--- ====================================================================
-
 function RainbowUI:AddButton(text, callback)
     local btn = Instance.new("TextButton")
     btn.Text = "  "..(text or "Botón")
@@ -426,18 +209,21 @@ function RainbowUI:AddButton(text, callback)
     return btn
 end
 
--- ====================================================================
--- OTRAS FUNCIONES (Destroy / Notify)
--- ====================================================================
-
 function RainbowUI:Destroy()
     if self._sg then self._sg:Destroy() end
 end
 
+-- ===============================================
+-- NOTIFY MODIFICADO PARA LANZAR EVENTO
+-- ===============================================
 function RainbowUI:Notify(text, duration)
     duration = duration or 2
     local sg = self._sg or game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("RainbowUI")
     if not sg then return end
+    
+    -- LANZAR EVENTO DE NOTIFICACIÓN ANTES DE MOSTRAR EL MENSAJE
+    NotifyEvent:Fire(text) 
+    
     local notif = Instance.new("TextLabel")
     notif.Text = tostring(text)
     notif.Size = UDim2.new(0, 280, 0, 32)
@@ -484,6 +270,12 @@ function RainbowUI:Notify(text, duration)
         end
         notif:Destroy()
     end)
+end
+-- ===============================================
+
+-- Función para que el script constructor pueda escuchar el evento
+function RainbowUI:GetNotifyEvent()
+    return NotifyEvent.Event
 end
 
 return RainbowUI
