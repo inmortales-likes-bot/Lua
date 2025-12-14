@@ -1,6 +1,6 @@
 -- Carga de la UI/HUD
 local RainbowUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/inmortales-likes-bot/Lua/refs/heads/main/Hud"))()
-local hud = RainbowUI:CreateWindow() -- no necesitas poner título
+local hud = RainbowUI:CreateWindow(230, 300) 
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -15,14 +15,12 @@ local teleporting = false
 local teleportObjectName = nil
 local notifiedNoObjects = false
 local notifiedError = false
-local TELEPORT_INTERVAL = 0.1 -- ajustado a 0.1s para respuesta rápida
+local TELEPORT_INTERVAL = 0.1 
 
--- (Auto-win eliminado: ahora es manual mediante botón)
-
--- Variables de control (ciclo PICKUPS) - hacen UNA pasada y paran
+-- Variables de control (ciclo PICKUPS)
 local multiTeleporting = false
 local multiCancelRequested = false
-local MULTI_TELEPORT_INTERVAL = 0.4 -- segundos entre cada teletransporte (menos de 0.5s)
+local MULTI_TELEPORT_INTERVAL = 2.0 
 local multiNotifiedNoObjects = false
 local multiNotifiedError = false
 local multiPickupSlotNames = {
@@ -32,14 +30,14 @@ local multiPickupSlotNames = {
     "RevealPickupsSteveSnowLeopard",
 }
 
--- Variables de control (ciclo STICKERS) - hacen UNA pasada y se detienen
+-- Variables de control (ciclo STICKERS)
 local stickerTeleporting = false
 local stickerCancelRequested = false
-local STICKER_TELEPORT_INTERVAL = 0.4 -- segundos entre cada teletransporte (menos de 0.5s)
+local STICKER_TELEPORT_INTERVAL = 2.0 
 local stickerNotifiedNoObjects = false
 local stickerNotifiedError = false
 
--- Lista de rutas relativas a workspace (sin el prefijo "workspace.")
+-- Lista de rutas relativas a workspace
 local stickerPaths = {
     "Stickers.Cheetah.CheckpointNoSticker00A",
     "ActiveStickers.d6001",
@@ -72,21 +70,19 @@ local stickerPaths = {
     "ActiveStickers.d6015",
 }
 
--- =========================
--- Plataforma anti-caída (piso móvil)
--- - Sigue solo X/Z del jugador para NO provocar "fly".
--- - Se reposiciona en Y SOLO en teletransporte o al crearla/manual.
--- - Ahora soporta FORCE DISABLE: si la desactivas manualmente se destruye y no se recrea hasta que la vuelvas a activar.
--- =========================
-
+-- Variables de control (Plataforma)
 local platform = nil
 local platformFollowConn = nil
-local platformManualEnabled = false -- si true, la plataforma persiste aunque no haya teletransporte
-local platformForceDisabled = false -- si true, evita que se cree automáticamente (forzado por el usuario)
-local PLATFORM_SIZE = Vector3.new(6, 1, 6) -- ajusta tamaño del piso
+local platformManualEnabled = false 
+local platformForceDisabled = false 
+local PLATFORM_SIZE = Vector3.new(6, 1, 6) 
 local PLATFORM_TRANSPARENCY = 0.35
-local PLATFORM_COLOR = Color3.fromRGB(30, 144, 255) -- azul
-local platformYOffset = 0.1 -- se calcula al crearla; distancia entre HRP y centro de la plataforma
+local PLATFORM_COLOR = Color3.fromRGB(30, 144, 255) 
+local platformYOffset = 0.1 
+
+-- =========================
+-- Funciones de Plataforma
+-- =========================
 
 local function destroyPlatform()
     if platformFollowConn then
@@ -101,17 +97,13 @@ local function destroyPlatform()
 end
 
 local function createPlatform()
-    -- Si el usuario forzó desactivar, no crear
     if platformForceDisabled then return end
-
-    -- Si ya existe, no crear otra
     if platform and platform.Parent then return end
     local character = LocalPlayer and LocalPlayer.Character
     if not character then return end
     local hrp = character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- Crear la parte
     local p = Instance.new("Part")
     p.Name = "TeleportPlatform_" .. tostring(LocalPlayer and LocalPlayer.UserId or "Local")
     p.Size = PLATFORM_SIZE
@@ -124,7 +116,6 @@ local function createPlatform()
     p.BottomSurface = Enum.SurfaceType.Smooth
     p.Parent = workspace
 
-    -- Posicionar inicialmente justo debajo del HumanoidRootPart (centro de la parte)
     local hrpSizeY = (hrp.Size and hrp.Size.Y) or 2
     local yOffset = (hrpSizeY / 2) + (p.Size.Y / 2) + 0.1
     platformYOffset = yOffset
@@ -132,7 +123,6 @@ local function createPlatform()
 
     platform = p
 
-    -- Seguir al jugador cada frame SOLO en X/Z (mantener Y fijo)
     platformFollowConn = RunService.Heartbeat:Connect(function()
         if not LocalPlayer or not LocalPlayer.Character then
             destroyPlatform()
@@ -143,7 +133,6 @@ local function createPlatform()
             destroyPlatform()
             return
         end
-        -- Mantener Y actual de la plataforma, pero mover X,Z para seguir al HRP
         local currentY = platform and platform.Parent and platform.Position.Y or (curHrp.Position.Y - platformYOffset)
         local targetPos = Vector3.new(curHrp.Position.X, currentY, curHrp.Position.Z)
         platform.CFrame = CFrame.new(targetPos)
@@ -152,9 +141,7 @@ local function createPlatform()
     if hud and hud.Notify then hud:Notify("Plataforma activada") end
 end
 
--- Comprueba si debe haber plataforma activa (teleports activos o toggle manual)
 local function updatePlatformState()
-    -- Si el usuario forzó desactivar, asegúrate de destruir y no recrear.
     if platformForceDisabled then
         if platform and platform.Parent then
             pcall(destroyPlatform)
@@ -167,19 +154,16 @@ local function updatePlatformState()
             pcall(createPlatform)
         end
     else
-        -- Ninguna operación activa y no está en modo manual -> destruir plataforma
         if platform and platform.Parent then
             pcall(destroyPlatform)
         end
     end
 end
 
--- Asegurarse de recrear plataforma si el personaje reaparece (solo si no fue forzada a off)
 if LocalPlayer then
     LocalPlayer.CharacterAdded:Connect(function(char)
         wait(0.1)
         if platform and platform.Parent then
-            -- si había plataforma, recrearla para el nuevo character
             pcall(destroyPlatform)
             wait(0.05)
             pcall(function()
@@ -189,7 +173,6 @@ if LocalPlayer then
     end)
 end
 
--- Mueve la plataforma directamente debajo del jugador (incluye Y) - usar en teletransportes
 local function ensurePlatformUnderCharacterInstant()
     if not platform or not platform.Parent then return end
     local character = LocalPlayer and LocalPlayer.Character
@@ -201,8 +184,9 @@ local function ensurePlatformUnderCharacterInstant()
 end
 
 -- =========================
--- Función GANAR reutilizable (ahora sólo manual)
+-- Funciones de Teletransporte Core
 -- =========================
+
 local function doWinTeleport()
     local player = LocalPlayer
     local success, destination = pcall(function()
@@ -213,7 +197,6 @@ local function doWinTeleport()
         pcall(function()
             if player and player.Character and player.Character.PrimaryPart then
                 player.Character:SetPrimaryPartCFrame(destination.CFrame)
-                -- Ajustar plataforma inmediatamente
                 pcall(ensurePlatformUnderCharacterInstant)
                 if hud and hud.Notify then hud:Notify("Teletransportado a GANAR") end
             end
@@ -222,10 +205,6 @@ local function doWinTeleport()
         if hud and hud.Notify then hud:Notify("Destino GANAR no encontrado") end
     end
 end
-
--- =========================
--- Funciones de teletransporte
--- =========================
 
 local function teleportToInstance(instance)
     if not instance then return false end
@@ -242,16 +221,10 @@ local function teleportToInstance(instance)
             local player = LocalPlayer
             if player and player.Character and player.Character.PrimaryPart then
                 player.Character:SetPrimaryPartCFrame(targetCFrame)
-                -- Mover plataforma inmediatamente con el personaje (incluye Y) para evitar caída
                 pcall(ensurePlatformUnderCharacterInstant)
             end
         end)
-
-        if not success then
-            return false
-        end
-
-        return true
+        return success
     end
 
     return false
@@ -261,14 +234,10 @@ local function teleportToObject(objectName)
     if not objectName then return false end
 
     local pickupsFolder = game.Workspace:FindFirstChild("Pickups")
-    if not pickupsFolder then
-        return false
-    end
+    if not pickupsFolder then return false end
 
     local object = pickupsFolder:FindFirstChild(objectName)
-    if not object then
-        return false
-    end
+    if not object then return false end
 
     if object:IsA("Model") and object.PrimaryPart then
         return teleportToInstance(object.PrimaryPart)
@@ -278,8 +247,7 @@ local function teleportToObject(objectName)
 end
 
 -- =========================
--- Bucle BUSCAR (mantiene loop hasta toggle)
--- - Ya NO inicia auto-win; ahora "GANAR" se realiza manual con el botón.
+-- Bucle BUSCAR (Continua)
 -- =========================
 
 local function startTeleportLoop()
@@ -288,8 +256,7 @@ local function startTeleportLoop()
             local found = teleportToObject(teleportObjectName)
 
             if found then
-                -- Notificar que se encontró el objeto (no se programa auto-win)
-                if hud and hud.Notify then hud:Notify("Objeto encontrado (auto-win desactivado). Usa el botón GANAR para teletransportarte.") end
+                if hud and hud.Notify then hud:Notify("Objeto encontrado (auto-win desactivado). Usa el botón GANAR.") end
                 if notifiedNoObjects then notifiedNoObjects = false end
             else
                 if not notifiedNoObjects and hud and hud.Notify then
@@ -297,34 +264,14 @@ local function startTeleportLoop()
                     notifiedNoObjects = true
                 end
             end
-
             wait(TELEPORT_INTERVAL)
         end
-        -- Si se detiene la búsqueda, actualizar plataforma
         updatePlatformState()
     end)
 end
 
-local function toggleTeleporting(objectName)
-    if teleporting then
-        -- detener búsqueda
-        teleporting = false
-        teleportObjectName = nil
-        if hud and hud.Notify then hud:Notify("Opción desactivada") end
-        notifiedNoObjects = false
-        notifiedError = false
-    else
-        -- iniciar búsqueda
-        teleportObjectName = objectName
-        teleporting = true
-        startTeleportLoop()
-        if hud and hud.Notify then hud:Notify("Búsqueda activada (auto-win eliminado; usa el botón GANAR para teletransportarte manualmente)") end
-    end
-    updatePlatformState()
-end
-
 -- =========================
--- Bucle PICKUPS (UNA pasada garantizada de primero a último)
+-- Bucle PICKUPS (Pasada única)
 -- =========================
 
 local function gatherMultiTargets()
@@ -341,80 +288,56 @@ local function gatherMultiTargets()
             end
         end
     end
-
     return targets
 end
 
 local function startMultiTeleportOnce()
     spawn(function()
-        -- Tomar snapshot de targets al iniciar la pasada para garantizar orden
         local targets = gatherMultiTargets()
 
         if #targets == 0 then
             if not multiNotifiedNoObjects and hud and hud.Notify then
-                hud:Notify("No hay pickups disponibles en PickupSlots")
+                hud:Notify("No hay pickups disponibles")
                 multiNotifiedNoObjects = true
             end
             multiTeleporting = false
             if hud and hud.Notify then hud:Notify("Ciclo de pickups finalizado (sin targets)") end
             updatePlatformState()
             return
-        else
-            if multiNotifiedNoObjects then multiNotifiedNoObjects = false end
         end
 
-        -- Garantizar que se recorre desde el primero hasta el último (aunque algún teleport falle,
-        -- se continúa con el siguiente)
         for i = 1, #targets do
             local target = targets[i]
 
-            -- Intentar teletransportar (si falla, se registra el error y se pasa al siguiente)
             local ok = false
             local success, err = pcall(function()
                 ok = teleportToInstance(target)
             end)
-            if (not success) or (success and ok == false) then
+
+            if not success or not ok then
                 if not multiNotifiedError and hud and hud.Notify then
                     hud:Notify("Error o pickup no válido en índice " .. tostring(i))
                     multiNotifiedError = true
                 end
             else
                 if hud and hud.Notify then
-                    hud:Notify("Teletransportado a pickup (" .. tostring(i) .. "): " .. tostring(target.Name or "Pickup"))
+                    hud:Notify("Teletransportado a pickup (" .. tostring(i) .. ")")
                 end
                 if multiNotifiedError then multiNotifiedError = false end
             end
 
-            -- Esperar exactamente el intervalo configurado antes del siguiente teletransporte
             wait(MULTI_TELEPORT_INTERVAL)
         end
 
-        -- pasada completa terminada
         multiTeleporting = false
         multiCancelRequested = false
-        if hud and hud.Notify then hud:Notify("Ciclo de pickups finalizado (pasada completa)") end
+        if hud and hud.Notify then hud:Notify("Ciclo de pickups finalizado") end
         updatePlatformState()
     end)
 end
 
-local function toggleMultiTeleport()
-    if multiTeleporting then
-        -- Solicitud de cancelación: la pasada actual seguirá hasta el final pero no se reiniciará
-        multiCancelRequested = true
-        if hud and hud.Notify then hud:Notify("Solicitud de cancelación recibida: la pasada terminará y luego se detendrá") end
-    else
-        -- Si el usuario previamente forzó la plataforma OFF y quiere ejecutar la pasada,
-        -- la pasada puede correr sin crear plataforma automática; eso es respetado.
-        multiTeleporting = true
-        multiCancelRequested = false
-        if hud and hud.Notify then hud:Notify("Iniciando pasada de pickups (se recorrerá completo)") end
-        startMultiTeleportOnce()
-    end
-    updatePlatformState()
-end
-
 -- =========================
--- Bucle STICKERS (UNA pasada garantizada de primero a último)
+-- Bucle STICKERS (Pasada única)
 -- =========================
 
 local function findNodeByPath(path)
@@ -429,23 +352,16 @@ local function findNodeByPath(path)
     return node
 end
 
-local function gatherStickerTargets()
-    local targets = {}
-    for _, relPath in ipairs(stickerPaths) do
-        local node = findNodeByPath(relPath)
-        if node then
-            local touch = node:FindFirstChild("Touch")
-            if touch then
-                table.insert(targets, touch)
-            end
-        end
-    end
-    return targets
-end
-
 local function startStickerTeleportOnce()
     spawn(function()
-        local targets = gatherStickerTargets()
+        local targets = {}
+        for _, relPath in ipairs(stickerPaths) do
+            local node = findNodeByPath(relPath)
+            if node then
+                local touch = node:FindFirstChild("Touch")
+                if touch then table.insert(targets, touch) end
+            end
+        end
 
         if #targets == 0 then
             if not stickerNotifiedNoObjects and hud and hud.Notify then
@@ -453,95 +369,132 @@ local function startStickerTeleportOnce()
                 stickerNotifiedNoObjects = true
             end
             stickerTeleporting = false
-            if hud and hud.Notify then hud:Notify("Ciclo de stickers finalizado (sin targets)") end
+            if hud and hud.Notify then hud:Notify("Ciclo de stickers finalizado") end
             updatePlatformState()
             return
-        else
-            if stickerNotifiedNoObjects then stickerNotifiedNoObjects = false end
         end
 
         for i = 1, #targets do
             local target = targets[i]
-
             local ok = false
             local success, err = pcall(function()
                 ok = teleportToInstance(target)
             end)
-            if (not success) or (success and ok == false) then
+            if not success or not ok then
                 if not stickerNotifiedError and hud and hud.Notify then
                     hud:Notify("Error o sticker no válido en índice " .. tostring(i))
                     stickerNotifiedError = true
                 end
             else
                 if hud and hud.Notify then
-                    hud:Notify("Teletransportado a sticker (" .. tostring(i) .. "): " .. tostring(target.Name or "Sticker"))
+                    hud:Notify("Teletransportado a sticker (" .. tostring(i) .. ")")
                 end
                 if stickerNotifiedError then stickerNotifiedError = false end
             end
-
-            -- Esperar intervalo entre teleports
             wait(STICKER_TELEPORT_INTERVAL)
         end
 
         stickerTeleporting = false
         stickerCancelRequested = false
-        if hud and hud.Notify then hud:Notify("Ciclo de stickers finalizado (pasada completa)") end
+        if hud and hud.Notify then hud:Notify("Ciclo de stickers finalizado") end
         updatePlatformState()
     end)
 end
 
-local function toggleStickerTeleport()
-    if stickerTeleporting then
-        -- Solicitud de cancelación pero permitir que la pasada termine
-        stickerCancelRequested = true
-        if hud and hud.Notify then hud:Notify("Solicitud de cancelación recibida: la pasada terminará y luego se detendrá") end
+
+-- =========================
+-- Handlers para los Toggles (Adaptados a 'state')
+-- =========================
+
+local function handleToggleTeleporting(state, objectName)
+    if state then
+        teleportObjectName = objectName
+        teleporting = true
+        startTeleportLoop()
+        if hud and hud.Notify then hud:Notify("Búsqueda de " .. objectName .. " activada") end
     else
-        stickerTeleporting = true
-        stickerCancelRequested = false
-        if hud and hud.Notify then hud:Notify("Iniciando pasada de stickers (se recorrerá completo)") end
-        startStickerTeleportOnce()
+        teleporting = false
+        teleportObjectName = nil
+        if hud and hud.Notify then hud:Notify("Opción desactivada") end
+        notifiedNoObjects = false
+        notifiedError = false
     end
     updatePlatformState()
 end
 
--- =========================
--- Botones en la UI
--- =========================
+local function handleToggleMultiTeleport(state)
+    if state then
+        multiTeleporting = true
+        multiCancelRequested = false
+        if hud and hud.Notify then hud:Notify("Iniciando pasada de pickups") end
+        startMultiTeleportOnce()
+    else
+        multiCancelRequested = true
+        if hud and hud.Notify then hud:Notify("Solicitud de cancelación recibida") end
+    end
+    updatePlatformState()
+end
 
-hud:AddButton("BUSCAR 🔎", function()
-    local objectNames = {"Default"} -- cambia según necesites
-    local firstObjectName = objectNames[1]
-    toggleTeleporting(firstObjectName)
-end)
+local function handleToggleStickerTeleport(state)
+    if state then
+        stickerTeleporting = true
+        stickerCancelRequested = false
+        if hud and hud.Notify then hud:Notify("Iniciando pasada de stickers") end
+        startStickerTeleportOnce()
+    else
+        stickerCancelRequested = true
+        if hud and hud.Notify then hud:Notify("Solicitud de cancelación recibida") end
+    end
+    updatePlatformState()
+end
 
-hud:AddButton("CICLO PICKUPS 🔁", function()
-    toggleMultiTeleport()
-end)
-
-hud:AddButton("CICLO STICKERS 🔁", function()
-    toggleStickerTeleport()
-end)
-
--- Botón para activar/desactivar la plataforma manualmente
-hud:AddButton("PLATAFORMA 🟦", function()
-    -- Toggle manual mode:
-    if not platformManualEnabled then
-        -- Activar manual: permite creación y quita la fuerza de OFF
+local function handleTogglePlatform(state)
+    if state then
         platformManualEnabled = true
         platformForceDisabled = false
         pcall(createPlatform)
         if hud and hud.Notify then hud:Notify("Plataforma manual: ON") end
     else
-        -- Desactivar manual: forzar OFF aunque teleports estén activos
         platformManualEnabled = false
         platformForceDisabled = true
-        -- Destruye inmediatamente la plataforma y evita recrearla automáticamente
         pcall(destroyPlatform)
         if hud and hud.Notify then hud:Notify("Plataforma manual: OFF (forzada)") end
     end
     updatePlatformState()
+end
+
+
+-- =========================
+-- ESTRUCTURA DE SECCIONES (Nombres Finales)
+-- =========================
+
+-- 1. SECCIÓN: Búsqueda Rápida
+local sectionRecoleccion = hud:AddSection("🔎 Búsqueda Rápida")
+
+sectionRecoleccion:AddToggle("OBJETOS 🗺️", false, function(state)
+    local objectNames = {"Default"} 
+    local firstObjectName = objectNames[1]
+    handleToggleTeleporting(state, firstObjectName)
 end)
 
-hud:AddButton("GANAR 🏁", function()
+sectionRecoleccion:AddToggle("NPC + 🔁", false, function(state)
+    handleToggleMultiTeleport(state)
+end)
+
+-- 2. SECCIÓN: Checkpoints
+local sectionMapas = hud:AddSection("🚩 CHECKPOINTS")
+
+sectionMapas:AddToggle("BUSCAR 🔁", false, function(state)
+    handleToggleStickerTeleport(state)
+end)
+
+-- 3. SECCIÓN: Finalizar y Utilidades
+local sectionUtilidades = hud:AddSection("🛠️ Utilidades y 🏆 Final")
+
+sectionUtilidades:AddButton("GANAR 🏁", function()
     doWinTeleport()
+end)
+
+sectionUtilidades:AddToggle("PLATAFORMA Anti-Caída 🟦", false, function(state)
+    handleTogglePlatform(state)
 end)
